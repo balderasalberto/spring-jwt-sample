@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JWT Authentication - Iniciar Sesión</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape shape-3"></div>
+    </div>
+    
+    <div class="container">
+        <div class="auth-card">
+            <div class="card-header">
+                <h1 class="logo">🔐 JWT Auth</h1>
+                <p class="subtitle">Sistema de Autenticación Seguro</p>
+            </div>
+            
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="login">Iniciar Sesión</button>
+                <button class="tab-btn" data-tab="register">Registrarse</button>
+            </div>
+            
+            <!-- Login Form -->
+            <div class="tab-content active" id="login">
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="loginUsername">Usuario</label>
+                        <input type="text" id="loginUsername" required 
+                               placeholder="Ingresa tu usuario">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="loginPassword">Contraseña</label>
+                        <input type="password" id="loginPassword" required 
+                               placeholder="Ingresa tu contraseña">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <span>Iniciar Sesión</span>
+                        <span class="btn-icon">→</span>
+                    </button>
+                    
+                    <div id="loginError" class="error-message"></div>
+                </form>
+            </div>
+            
+            <!-- Register Form -->
+            <div class="tab-content" id="register">
+                <form id="registerForm">
+                    <div class="form-group">
+                        <label for="registerUsername">Usuario</label>
+                        <input type="text" id="registerUsername" required 
+                               placeholder="Elige un nombre de usuario">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="registerEmail">Email</label>
+                        <input type="email" id="registerEmail" required 
+                               placeholder="tu@email.com">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="registerPassword">Contraseña</label>
+                        <input type="password" id="registerPassword" required 
+                               placeholder="Mínimo 6 caracteres">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <span>Crear Cuenta</span>
+                        <span class="btn-icon">→</span>
+                    </button>
+                    
+                    <div id="registerError" class="error-message"></div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>🚀 Desarrollado con Spring Boot + JWT</p>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
