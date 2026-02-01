@@ -1,3 +1,5 @@
-name: Spring JWT Sample API
-type: collection
-version: 1.0.0
+{
+    "version": "1",
+    "name": "Spring JWT Sample API",
+    "type": "collection"
+}
