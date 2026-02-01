@@ -1,0 +1,60 @@
+meta {
+  name: Get User Profile
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/users/profile
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  test("Status code is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+  
+  test("Response has user data", function() {
+    expect(res.body).to.have.property('id');
+    expect(res.body).to.have.property('username');
+    expect(res.body).to.have.property('email');
+    expect(res.body).to.have.property('role');
+  });
+  
+  test("User has ROLE_USER", function() {
+    expect(res.body.role).to.equal('ROLE_USER');
+  });
+}
+
+docs {
+  # Obtener Perfil de Usuario
+  
+  Endpoint protegido que requiere autenticación JWT.
+  
+  ## Autenticación
+  Requiere el token JWT en el header Authorization:
+  ```
+  Authorization: Bearer <token>
+  ```
+  
+  ## Respuesta Exitosa
+  Retorna los datos del usuario autenticado:
+  - id
+  - username
+  - email
+  - role
+  - createdAt
+  
+  ## Errores
+  - **403 Forbidden**: Token inválido o no proporcionado
+  - **401 Unauthorized**: Token expirado
+}

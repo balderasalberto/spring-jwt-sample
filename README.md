@@ -118,6 +118,195 @@ Authorization: Bearer {token}
 }
 ```
 
+## 🧪 Pruebas con Bruno (API Client)
+
+### Instalación de Bruno
+Si no tienes Bruno instalado, descárgalo desde: [usebruno.com](https://www.usebruno.com/)
+
+### Colección Bruno Incluida
+
+He creado una colección Bruno completa en la carpeta `bruno/` que puedes importar directamente:
+
+```
+bruno/
+├── bruno.json                    # Configuración de la colección
+├── environments/
+│   └── Local.bru                 # Variables de entorno (baseUrl, token)
+├── Auth/
+│   ├── Register.bru              # Request de registro
+│   └── Login.bru                 # Request de login
+└── Users/
+    └── Get Profile.bru           # Request de perfil (protegido)
+```
+
+### Importar la Colección en Bruno
+
+1. Abre Bruno
+2. Click en "Open Collection"
+3. Navega a la carpeta `bruno/` del proyecto
+4. La colección se cargará automáticamente
+
+### Configuración de Variables de Entorno
+
+La colección incluye un environment "Local" con:
+- `baseUrl`: `http://localhost:8080`
+- `token`: (se guarda automáticamente después de login/register)
+
+### Scripts Automáticos
+
+Los requests de **Login** y **Register** incluyen scripts que guardan automáticamente el token JWT:
+
+```javascript
+if (res.body.token) {
+  bru.setEnvVar("token", res.body.token);
+  console.log("✅ Token guardado:", res.body.token);
+}
+```
+
+### Ejemplos de Uso
+
+#### 1️⃣ Registrar Usuario
+
+**Request**: `Auth > Register`
+
+```http
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "alice",
+  "email": "alice@example.com",
+  "password": "password123"
+}
+```
+
+**Respuesta** (200 OK):
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiJ9...",
+  "username": "alice",
+  "email": "alice@example.com"
+}
+```
+
+💡 El token se guarda automáticamente en la variable `{{token}}`
+
+---
+
+#### 2️⃣ Iniciar Sesión
+
+**Request**: `Auth > Login`
+
+```http
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "alice",
+  "password": "password123"
+}
+```
+
+**Respuesta** (200 OK):
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiJ9...",
+  "username": "alice",
+  "email": "alice@example.com"
+}
+```
+
+**Error** (401):
+```json
+{
+  "message": "Credenciales inválidas"
+}
+```
+
+---
+
+#### 3️⃣ Obtener Perfil (Protegido)
+
+**Request**: `Users > Get Profile`
+
+```http
+GET {{baseUrl}}/api/users/profile
+Authorization: Bearer {{token}}
+```
+
+**Respuesta** (200 OK):
+```json
+{
+  "id": 1,
+  "username": "alice",
+  "email": "alice@example.com",
+  "role": "ROLE_USER",
+  "createdAt": "2026-01-31T22:30:00"
+}
+```
+
+**Sin Token** (403):
+```json
+{
+  "timestamp": "2026-01-31T22:30:00.000+00:00",
+  "status": 403,
+  "error": "Forbidden",
+  "path": "/api/users/profile"
+}
+```
+
+---
+
+### Tests Incluidos
+
+Cada request incluye tests automatizados:
+
+**Register/Login**:
+```javascript
+test("Status code is 200", function() {
+  expect(res.status).to.equal(200);
+});
+
+test("Response has token", function() {
+  expect(res.body.token).to.be.a('string');
+});
+```
+
+**Get Profile**:
+```javascript
+test("Response has user data", function() {
+  expect(res.body).to.have.property('username');
+  expect(res.body).to.have.property('email');
+  expect(res.body.role).to.equal('ROLE_USER');
+});
+```
+
+### Flujo de Prueba Recomendado
+
+1. **Iniciar el servidor**:
+   ```bash
+   mvn spring-boot:run
+   ```
+
+2. **Ejecutar requests en orden**:
+   - ✅ `Auth > Register` → Obtén el token
+   - ✅ `Users > Get Profile` → Verifica que funciona con el token
+   - ✅ `Auth > Login` → Prueba con usuario existente
+   - ✅ `Users > Get Profile` → Verifica con el nuevo token
+
+### Casos de Prueba
+
+| Caso | Request | Resultado Esperado |
+|------|---------|-------------------|
+| Registro exitoso | `POST /auth/register` | 200 + token |
+| Usuario duplicado | `POST /auth/register` (mismo username) | 400 Bad Request |
+| Login correcto | `POST /auth/login` | 200 + token |
+| Login incorrecto | `POST /auth/login` (password malo) | 401 Unauthorized |
+| Perfil con token | `GET /users/profile` + Bearer token | 200 + datos |
+| Perfil sin token | `GET /users/profile` sin Auth header | 403 Forbidden |
+
+---
+
 ## 🎯 Flujo de Autenticación JWT
 
 1. **Registro/Login**: El usuario envía credenciales al backend
