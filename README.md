@@ -127,6 +127,271 @@ Authorization: Bearer {token}
 5. **Validación**: El servidor valida el token en cada petición
 6. **Acceso**: Si el token es válido, se permite el acceso al recurso
 
+## 📊 Diagramas UML
+
+### Diagrama de Clases - Modelo de Dominio
+
+```mermaid
+classDiagram
+    class User {
+        -Long id
+        -String username
+        -String email
+        -String password
+        -String role
+        -LocalDateTime createdAt
+        -LocalDateTime updatedAt
+        +getId()
+        +getUsername()
+        +getEmail()
+    }
+    
+    class UserRepository {
+        <<interface>>
+        +findByUsername(String) Optional~User~
+        +existsByUsername(String) Boolean
+        +existsByEmail(String) Boolean
+    }
+    
+    class UserDetailsServiceImpl {
+        -UserRepository userRepository
+        +loadUserByUsername(String) UserDetails
+    }
+    
+    class JwtUtil {
+        -String secret
+        -Long expiration
+        +generateToken(UserDetails) String
+        +validateToken(String, UserDetails) Boolean
+        +extractUsername(String) String
+        +extractExpiration(String) Date
+    }
+    
+    class AuthController {
+        -AuthenticationManager authManager
+        -UserRepository userRepository
+        -PasswordEncoder passwordEncoder
+        -JwtUtil jwtUtil
+        +registerUser(RegisterRequest) ResponseEntity
+        +loginUser(LoginRequest) ResponseEntity
+    }
+    
+    class UserController {
+        -UserRepository userRepository
+        +getUserProfile() ResponseEntity
+    }
+    
+    class SecurityConfig {
+        -JwtAuthenticationFilter jwtAuthFilter
+        -UserDetailsService userDetailsService
+        +securityFilterChain(HttpSecurity) SecurityFilterChain
+        +passwordEncoder() PasswordEncoder
+    }
+    
+    class JwtAuthenticationFilter {
+        -JwtUtil jwtUtil
+        -UserDetailsService userDetailsService
+        +doFilterInternal(HttpServletRequest, HttpServletResponse, FilterChain)
+    }
+    
+    UserRepository <|.. UserDetailsServiceImpl : implements
+    UserDetailsServiceImpl --> User : uses
+    AuthController --> UserRepository : uses
+    AuthController --> JwtUtil : uses
+    UserController --> UserRepository : uses
+    JwtAuthenticationFilter --> JwtUtil : uses
+    JwtAuthenticationFilter --> UserDetailsService : uses
+    SecurityConfig --> JwtAuthenticationFilter : configures
+```
+
+### Diagrama de Secuencia - Registro de Usuario
+
+```mermaid
+sequenceDiagram
+    actor Usuario
+    participant Frontend
+    participant AuthController
+    participant UserRepository
+    participant PasswordEncoder
+    participant JwtUtil
+    participant Database
+    
+    Usuario->>Frontend: Ingresa datos de registro
+    Frontend->>AuthController: POST /api/auth/register
+    AuthController->>UserRepository: existsByUsername(username)
+    UserRepository->>Database: SELECT * FROM users WHERE username=?
+    Database-->>UserRepository: No existe
+    UserRepository-->>AuthController: false
+    
+    AuthController->>UserRepository: existsByEmail(email)
+    UserRepository->>Database: SELECT * FROM users WHERE email=?
+    Database-->>UserRepository: No existe
+    UserRepository-->>AuthController: false
+    
+    AuthController->>PasswordEncoder: encode(password)
+    PasswordEncoder-->>AuthController: hashedPassword
+    
+    AuthController->>UserRepository: save(user)
+    UserRepository->>Database: INSERT INTO users...
+    Database-->>UserRepository: User guardado
+    UserRepository-->>AuthController: User
+    
+    AuthController->>JwtUtil: generateToken(userDetails)
+    JwtUtil-->>AuthController: JWT Token
+    
+    AuthController-->>Frontend: 200 OK {token, username, email}
+    Frontend->>Frontend: localStorage.setItem("jwtToken", token)
+    Frontend-->>Usuario: Redirige a Dashboard
+```
+
+### Diagrama de Secuencia - Login de Usuario
+
+```mermaid
+sequenceDiagram
+    actor Usuario
+    participant Frontend
+    participant AuthController
+    participant AuthManager
+    participant UserDetailsService
+    participant UserRepository
+    participant JwtUtil
+    participant Database
+    
+    Usuario->>Frontend: Ingresa credenciales
+    Frontend->>AuthController: POST /api/auth/login
+    AuthController->>AuthManager: authenticate(username, password)
+    AuthManager->>UserDetailsService: loadUserByUsername(username)
+    UserDetailsService->>UserRepository: findByUsername(username)
+    UserRepository->>Database: SELECT * FROM users WHERE username=?
+    Database-->>UserRepository: User
+    UserRepository-->>UserDetailsService: Optional[User]
+    UserDetailsService-->>AuthManager: UserDetails
+    
+    AuthManager->>AuthManager: Verifica password con BCrypt
+    alt Password correcto
+        AuthManager-->>AuthController: Authentication
+        AuthController->>JwtUtil: generateToken(userDetails)
+        JwtUtil-->>AuthController: JWT Token
+        AuthController->>UserRepository: findByUsername(username)
+        UserRepository-->>AuthController: User
+        AuthController-->>Frontend: 200 OK {token, username, email}
+        Frontend->>Frontend: localStorage.setItem("jwtToken", token)
+        Frontend-->>Usuario: Redirige a Dashboard
+    else Password incorrecto
+        AuthManager-->>AuthController: BadCredentialsException
+        AuthController-->>Frontend: 401 Unauthorized
+        Frontend-->>Usuario: Muestra error
+    end
+```
+
+### Diagrama de Secuencia - Acceso a Endpoint Protegido
+
+```mermaid
+sequenceDiagram
+    actor Usuario
+    participant Frontend
+    participant JwtAuthFilter
+    participant JwtUtil
+    participant UserDetailsService
+    participant UserController
+    participant UserRepository
+    participant Database
+    
+    Usuario->>Frontend: Accede a Dashboard
+    Frontend->>Frontend: token = localStorage.getItem("jwtToken")
+    Frontend->>UserController: GET /api/users/profile<br/>Authorization: Bearer {token}
+    
+    Note over JwtAuthFilter: Intercepta la petición
+    JwtAuthFilter->>JwtAuthFilter: Extrae token del header
+    JwtAuthFilter->>JwtUtil: extractUsername(token)
+    JwtUtil-->>JwtAuthFilter: username
+    
+    JwtAuthFilter->>UserDetailsService: loadUserByUsername(username)
+    UserDetailsService-->>JwtAuthFilter: UserDetails
+    
+    JwtAuthFilter->>JwtUtil: validateToken(token, userDetails)
+    JwtUtil->>JwtUtil: Verifica firma y expiración
+    JwtUtil-->>JwtAuthFilter: true
+    
+    JwtAuthFilter->>JwtAuthFilter: Set Authentication in SecurityContext
+    JwtAuthFilter-->>UserController: Continúa con la petición
+    
+    UserController->>UserRepository: findByUsername(username)
+    UserRepository->>Database: SELECT * FROM users WHERE username=?
+    Database-->>UserRepository: User
+    UserRepository-->>UserController: Optional[User]
+    
+    UserController-->>Frontend: 200 OK {id, username, email, role, createdAt}
+    Frontend-->>Usuario: Muestra perfil en Dashboard
+```
+
+### Diagrama de Componentes - Arquitectura General
+
+```mermaid
+graph TB
+    subgraph "Frontend (Static Resources)"
+        HTML[index.html / dashboard.html]
+        CSS[style.css]
+        JS[app.js / dashboard.js]
+    end
+    
+    subgraph "Spring Boot Application"
+        subgraph "Presentation Layer"
+            AuthCtrl[AuthController]
+            UserCtrl[UserController]
+        end
+        
+        subgraph "Security Layer"
+            SecConfig[SecurityConfig]
+            JwtFilter[JwtAuthenticationFilter]
+            JwtUtil[JwtUtil]
+        end
+        
+        subgraph "Service Layer"
+            UserDetailsServ[UserDetailsServiceImpl]
+        end
+        
+        subgraph "Data Access Layer"
+            UserRepo[UserRepository]
+        end
+        
+        subgraph "Domain Layer"
+            UserEntity[User Entity]
+            DTOs[DTOs: LoginRequest<br/>RegisterRequest<br/>AuthResponse]
+        end
+    end
+    
+    subgraph "Database"
+        H2[(H2 In-Memory DB)]
+    end
+    
+    HTML -->|HTTP Requests| AuthCtrl
+    HTML -->|HTTP Requests| UserCtrl
+    JS -->|JWT Token| JwtFilter
+    
+    AuthCtrl --> UserRepo
+    AuthCtrl --> JwtUtil
+    UserCtrl --> UserRepo
+    
+    JwtFilter --> JwtUtil
+    JwtFilter --> UserDetailsServ
+    SecConfig --> JwtFilter
+    
+    UserDetailsServ --> UserRepo
+    UserRepo --> H2
+    
+    AuthCtrl -.->|uses| DTOs
+    UserCtrl -.->|uses| DTOs
+    UserRepo -.->|manages| UserEntity
+    
+    style HTML fill:#667eea
+    style CSS fill:#764ba2
+    style JS fill:#f093fb
+    style H2 fill:#10b981
+    style JwtFilter fill:#ef4444
+    style JwtUtil fill:#f59e0b
+```
+
 ## 🗄️ Estructura del Proyecto
 
 ```
