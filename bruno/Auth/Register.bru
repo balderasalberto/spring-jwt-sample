@@ -16,17 +16,21 @@ headers {
 
 body:json {
   {
-    "username": "alice",
-    "email": "alice@example.com",
+    "username": "alice4",
+    "email": "alice4@example.com",
     "password": "password123"
   }
 }
 
 script:post-response {
-  // Guardar el token automáticamente
-  if (res.body.token) {
-    bru.setEnvVar("token", res.body.token);
-    console.log("✅ Token guardado:", res.body.token);
+  // Asegúrate de que esto esté en la pestaña "Post Response"
+  const body = res.getBody();
+  
+  if (body && body.token) {
+    bru.setEnvVar("token", body.token);
+    console.log("✅ Token guardado:", body.token);
+  } else {
+    console.log("❌ No se encontró el token en la respuesta");
   }
 }
 
