@@ -5,14 +5,14 @@ meta {
 }
 
 get {
-  url: http://localhost:8080/api/users/profile
+  url: {{baseUrl}}/api/users/profile
   body: none
   auth: none
 }
 
 headers {
   Content-Type: application/json
-  Authorization: Bearer {{token}}
+  Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbGljZSIsImlhdCI6MTc2OTkyNDY3NiwiZXhwIjoxNzcwMDExMDc2fQ.EZeFzjAflhGIMFeInIPTHlX30d3citoRUS5iKtABCgA
 }
 
 tests {
